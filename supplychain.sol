@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -22,6 +21,7 @@ contract SupplyChain {
         string businessRegNumber;
         string phoneNumber;
         bool isRegistered;
+        string[] batchIDs;
     }
 
     struct Wholesaler {
@@ -29,6 +29,7 @@ contract SupplyChain {
         string businessRegNumber;
         string phoneNumber;
         bool isRegistered;
+        string[] batchIDs;
     }
 
     address public owner;
@@ -65,7 +66,8 @@ contract SupplyChain {
             name: _name,
             businessRegNumber: _businessRegNumber,
             phoneNumber: _phoneNumber,
-            isRegistered: true
+            isRegistered: true,
+            batchIDs: new string [] (0)
         });
         distributorAddresses.push(_distributor);
         emit DistributorRegistered(_distributor, _name, _businessRegNumber, _phoneNumber);
@@ -77,7 +79,8 @@ contract SupplyChain {
             name: _name,
             businessRegNumber: _businessRegNumber,
             phoneNumber: _phoneNumber,
-            isRegistered: true
+            isRegistered: true,
+            batchIDs: new string[](0)
         });
         wholesalerAddresses.push(_wholesaler);
         emit WholesalerRegistered(_wholesaler, _name, _businessRegNumber, _phoneNumber);
@@ -106,6 +109,7 @@ contract SupplyChain {
         require(batch.state == State.Manufactured, "Batch is not in Manufactured state");
         batch.currentHolder = _to;
         batch.state = State.Shipped;
+        distributors[_to].batchIDs.push(_batchID);
         emit BatchShipped(_batchID, msg.sender, _to);
         emit Notification(_batchID, batch.itemName, _to);
     }
@@ -116,6 +120,7 @@ contract SupplyChain {
         require(batch.state == State.Received, "Batch is not in Received state");
         batch.currentHolder = _to;
         batch.state = State.Distributed;
+        wholesalers[_to].batchIDs.push(_batchID);
         emit BatchShipped(_batchID, msg.sender, _to);
         emit Notification(_batchID, batch.itemName, _to);
     }
@@ -152,9 +157,19 @@ contract SupplyChain {
         }
     }
 
-    function getBatchDetails(string memory _batchID) public view returns (string memory itemName, uint manufacturingDate,uint expiryDate, string memory productionDetails, State state, string memory stateDetails, address currentHolder) {
+    function getBatchDetails(string memory _batchID) public view returns (string memory itemName, uint manufacturingDate, uint expiryDate, string memory productionDetails, State state, string memory stateDetails, address currentHolder) {
         Batch storage batch = batches[_batchID];
         require(bytes(batch.batchID).length != 0, "Batch ID does not exist");
         return (batch.itemName, batch.manufacturingDate, batch.expiryDate, batch.productionDetails, batch.state, batch.stateDetails, batch.currentHolder);
+    }
+
+    function getDistributorBatchIDs(address _distributor) public view returns (string[] memory) {
+        require(distributors[_distributor].isRegistered, "Distributor is not registered");
+        return distributors[_distributor].batchIDs;
+    }
+
+    function getWholesalerBatchIDs(address _wholesaler) public view returns (string[] memory) {
+        require(wholesalers[_wholesaler].isRegistered, "Wholesaler is not registered");
+        return wholesalers[_wholesaler].batchIDs;
     }
 }
